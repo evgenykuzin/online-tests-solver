@@ -169,7 +169,7 @@ public class Main {
         driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
         driver.manage().window().maximize();
         if (subject.equals(Subject.ENGLISH)){
-            webDriverSteps = new EnglishSteps(driver);
+            englishSteps = new EnglishSteps(driver);
             answersMap = m.getAnswersMap();
         } else {
             webDriverSteps = new WebDriverSteps(driver, subject);
