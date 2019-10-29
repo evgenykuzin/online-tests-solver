@@ -1,3 +1,14 @@
 Manifest-Version: 1.0
-Main-Class: Main
+Ant-Version: Apache Ant 1.7.0
+Created-By: Apache Ant
+Package: org.apache.velocity
+Build-Jdk: 1.4.2_08
+Extension-Name: velocity
+Specification-Title: Velocity is a Java-based template engine
+Specification-Vendor: Apache Software Foundation
+Implementation-Title: org.apache.velocity
+Implementation-Vendor-Id: org.apache
+Implementation-Vendor: Apache Software Foundation
+Implementation-Version: 1.5
+main.Main-Class: main.Main
 
