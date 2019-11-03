@@ -12,9 +12,10 @@ import static org.bytedeco.javacpp.lept.*;
 public class TextRecognizer {
     private BytePointer outText;
     private tesseract.TessBaseAPI api;
+    private PIX image;
     private static String source = "src\\main\\assets\\teseract\\";
 
-    public void init() {
+    public void begin() {
         api = new tesseract.TessBaseAPI();
         // Initialize tesseract-ocr with English, without specifying tessdata path
 
@@ -25,7 +26,7 @@ public class TextRecognizer {
 
     }
 
-    public void recognize(String filePath) {
+    public String recognize(String filePath) {
         // Open input image with leptonica library
         //PIX image = pixRead(args.length > 0 ? args[0] : "/usr/src/tesseract/testing/phototest.tif");
 
@@ -44,21 +45,25 @@ public class TextRecognizer {
         byte[] imageInByte = baos.toByteArray();
 
         //PIX image = pixReadMemPng(imageInByte, imageInByte.length);
-        PIX image = pixRead(source+filePath);
+        image = pixRead(source+filePath);
         api.SetImage(image);
         // Get OCR result
         outText = api.GetUTF8Text();
-        System.out.println("OCR output:\n" + outText.getString());
+       return outText.getString();
+    }
 
+    public void end(){
         // Destroy used object and release memory
         api.End();
         outText.deallocate();
         pixDestroy(image);
+        image = null;
     }
 
     public static void main(String[] args) {
         TextRecognizer tr = new TextRecognizer();
-        tr.init();
-        tr.recognize("testing\\test1.png");
+        tr.begin();
+        String out = tr.recognize("testing\\test1.png");
+        System.out.println("out = " + out);
     }
 }

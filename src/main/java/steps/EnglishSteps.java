@@ -1,10 +1,12 @@
 package steps;
 
+import info.debatty.java.stringsimilarity.Damerau;
 import main.Main;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import utils.Utils;
 
 import java.util.List;
 
@@ -19,11 +21,27 @@ public class EnglishSteps extends WebDriverSteps {
     @Override
     public void getMainPage(String url, String userName, String password){
         driver.get(url);
-        driver.findElement(By.xpath("//*[@id=\"page-wrapper\"]/nav/ul[2]/li[2]/div/span/a")).click();
-        driver.findElement(By.xpath("//*[@id=\"region-main\"]/div/div[2]/div/div/div/div/div/div[1]/button")).click();
-        driver.findElement(By.xpath("//*[@id=\"user\"]")).sendKeys(userName);
-        driver.findElement(By.xpath("//*[@id=\"password\"]")).sendKeys(password);
-        driver.findElement(By.xpath("//*[@id=\"doLogin\"]")).click();
+        try {
+            driver.findElement(By.xpath("//*[@id=\"page-wrapper\"]/nav/ul[2]/li[2]/div/span/a")).click();
+        } catch (NoSuchElementException nsee1){
+            nsee1.printStackTrace();
+        }
+        try {
+            driver.findElement(By.xpath("//*[@id=\"region-main\"]/div/div[2]/div/div/div/div/div/div[1]/button")).click();
+        } catch (NoSuchElementException nsee1){
+            nsee1.printStackTrace();
+        }
+        try {
+            driver.findElement(By.xpath("//*[@id=\"user\"]")).sendKeys(userName);
+            driver.findElement(By.xpath("//*[@id=\"password\"]")).sendKeys(password);
+            driver.findElement(By.xpath("//*[@id=\"doLogin\"]")).click();
+        } catch (NoSuchElementException nsee1){
+            nsee1.printStackTrace();
+        }
+    }
+
+    public void getPage(String url){
+        driver.get(url);
     }
 
     public List<WebElement> getTasks() {
@@ -62,11 +80,27 @@ public class EnglishSteps extends WebDriverSteps {
         return true;
     }
 
-    public void doTask() {
+    public void doTask(String answers) {
         List<WebElement> blocks = driver.findElements(By.className("qtext"));
-
         if (isMultiAnswerType()) {
-
+            blocks = driver.findElements(By.className("formulation clearfix"));
+            for (WebElement block : blocks) {
+                String question = block.findElement(By.className("qtext")).getText();
+                String answer = "";
+                Damerau damerau = new Damerau();
+                answer = Utils.findSimilar(question, answers.split("\n")).replaceAll(question, "");
+                double dist = 10000;
+                WebElement rightAnswer = null;
+                for (WebElement a : block.findElements(By.className("input"))){
+                    double dd = damerau.distance(a.getText(), answer);
+                    if (dd < dist){
+                        dist = dd;
+                        rightAnswer = a;
+                    }
+                }
+                if (rightAnswer == null) throw new IllegalArgumentException("answer not found");
+               rightAnswer.click();
+            }
         } else if (isMultiChoiceType()) {
 
         } else if (isShortAnswerType()) {

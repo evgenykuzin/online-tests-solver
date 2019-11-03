@@ -32,11 +32,19 @@ public class WebDriverSteps {
     }
 
     public String[] getAnswers(int i) {
-        String[] arr = getQuestionBlocks().get(i).getText().split("\n");
-        return new String[]{arr[1], arr[2], arr[3], arr[4]};
+       String[] arr = getQuestionBlocks().get(i).getText().split("\n");
+       if (driver.findElements(By.className("problem")).size() == 1) {
+           return arr;
+       } else return new String[]{arr[1], arr[2], arr[3], arr[4]};
     }
 
     public WebElement getRadioButton(int i, int j) {
-        return getQuestionBlocks().get(i).findElements(By.tagName("input")).get(j);
+        List<WebElement> result = getQuestionBlocks().get(i).findElements(By.tagName("input"));
+        try {
+            return result.get(j);
+
+        } catch (IndexOutOfBoundsException ioobe){
+            return result.get(j-1);
+        }
     }
 }

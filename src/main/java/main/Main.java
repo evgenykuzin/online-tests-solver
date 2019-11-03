@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import steps.EnglishSteps;
 import steps.WebDriverSteps;
+import utils.TextRecognizer;
 
 public class Main {
     private static WebDriver driver;
@@ -170,15 +171,16 @@ public class Main {
         driver.manage().window().maximize();
         if (subject.equals(Subject.ENGLISH)){
             englishSteps = new EnglishSteps(driver);
-            answersMap = m.getAnswersMap();
         } else {
             webDriverSteps = new WebDriverSteps(driver, subject);
+            answersMap = m.getAnswersMap();
         }
     }
 
     private void returnToModule(){
         driver.get(moduleUrl);
     }
+
     public void goEnglish(String moduleUrl){
         englishSteps.getMainPage(moduleUrl, userNameField.getText(), passwordField.getText());
         this.moduleUrl = moduleUrl;
@@ -187,8 +189,25 @@ public class Main {
         for (WebElement taskSrc : module){
             returnToModule();
             englishSteps.goToTask(taskSrc);
-            englishSteps.doTask();
+            //*get task name from page*
+            String taskName = "englishSteps.getTaskName()";
+            taskName = "\\testing\\qutothleve\\";
+            String answers = getAnswersForEnglish(taskName);
+            englishSteps.doTask(answers);
         }
+    }
+
+    private String getAnswersForEnglish(String taskName){
+        StringBuilder answers = new StringBuilder();
+        TextRecognizer tr = new TextRecognizer();
+        tr.begin();
+        File answerDir = new File(taskName);
+        if (answerDir.isDirectory()) {
+            for (File img : answerDir.listFiles()){
+                answers.append(tr.recognize(img.getPath())).append("\n");
+            }
+        }
+        return answers.toString();
     }
 
     public void go(int size, String url, String userName, String password) {
@@ -219,15 +238,26 @@ public class Main {
             }
         }
         for (int i = 0; i < size; i++) {
-            String question;
+            String question = null;
             String[] block = webDriverSteps.getQuestionBlocks().get(i).getText().split("\n");
-            question = block[0];
-            //if (question.contains("Задание") || block.length > 5) question = webDriverSteps.getQuestionBlocks().get(i).findElement(By.tagName("legend")).getText();
+            try {
+                if (webDriverSteps.getAnswers(i).length < 5) {
+                    question = block[0];
+                } else {
+                    question = driver.findElement(By.className("problem")).findElements(By.tagName("p")).get(i).getText();
+                }
+            } catch (NoSuchElementException nsee0){  try {
+                question = webDriverSteps.getQuestionBlocks().get(i).findElement(By.tagName("legend")).getText();
+            } catch (NoSuchElementException nsee){
+                question = driver.findElements(By.tagName("fieldset")).get(i).findElement(By.tagName("legend")).getText();
+            }
+            }
+
             if (!question.equals("")) {
                     String answer = null;
                     try{
                     Damerau d = new Damerau();
-                    double dist = 10;
+                    double dist = 100;
                     for (String key : answersMap.keySet()) {
                         String k = key.trim().toLowerCase().replaceAll("[\\d$&+:;=?@#|'<>.^*()%!-]", "");
                         String q = question.trim().toLowerCase().replaceAll("[\\d$&+:;=?@#|'<>.^*()%!-]", "");
@@ -237,7 +267,6 @@ public class Main {
                                 dist = d.distance(k, q);
                             }
                         }
-
                     }
                 } catch (Exception e){
                     log(e.getMessage());
@@ -288,16 +317,14 @@ public class Main {
         Damerau d = new Damerau();
         WebElement radioAnswer = null;
         int iter = 0;
-        double dist = 10;
+        double dist = 100;
         int result = 0;
         for (String element : webDriverSteps.getAnswers(i)) {
-            String a = answer.trim().toLowerCase().replaceAll("[\\d$&+:;=?@#|'<>.^*()%!-]", "");
-            String e = element.trim().toLowerCase().replaceAll("[\\d$&+:;=?@#|'<>.^*()%!-]", "");
+            String a = answer.trim().toLowerCase().replaceAll("[\\d$&+:;=?@#|'<>.^*()%!]", "");
+            String e = element.trim().toLowerCase().replaceAll("[\\d$&+:;=?@#|'<>.^*()%!]", "");
             if (d.distance(e, a) < dist) {
                 result = iter;
                 dist = d.distance(e, a);
-                // radioAnswer = webDriverSteps.getRadioButton(i, iter);
-                //break;
             }
 
             iter++;
