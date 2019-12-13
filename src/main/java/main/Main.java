@@ -6,6 +6,7 @@ import org.openqa.selenium.ElementNotInteractableException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -14,9 +15,11 @@ import java.io.*;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
 import steps.EnglishSteps;
 import steps.WebDriverSteps;
 import utils.TextRecognizer;
+import utils.Utils;
 
 public class Main {
     private static WebDriver driver;
@@ -25,7 +28,7 @@ public class Main {
     private static Map<String, String> answersMap;
     private static JPanel panel = new JPanel();
     private static TextArea textArea = new TextArea();
-    private static JRadioButton authoSubmit = new JRadioButton("автонажатие 'оправить'");
+    private static JRadioButton authoSubmit = new JRadioButton("автонажатие 'оправить' (для физры)");
     private static JComboBox comboBox = new JComboBox();
     private static File loginTempFile;
     private static TextField userNameField;
@@ -103,7 +106,7 @@ public class Main {
             panel.add(userNameField, BorderLayout.CENTER);
             panel.add(passLabel);
             panel.add(passwordField, BorderLayout.CENTER);
-            authoSubmit.setSelected(true);
+            authoSubmit.setSelected(false);
             panel.add(authoSubmit);
             panel.add(comboBox);
             panel.add(start, BorderLayout.CENTER);
@@ -125,12 +128,12 @@ public class Main {
                 subject = Subject.PHISRA;
             } else if (comboBox.getSelectedItem().toString().equals(filosofy)) {
                 subject = Subject.FILOSOFY;
-            } else if (comboBox.getSelectedItem().toString().equals(english)){
+            } else if (comboBox.getSelectedItem().toString().equals(english)) {
                 subject = Subject.ENGLISH;
                 //answersMap = getEnglishAnswers();
             }
             if (!userNameField.getText().equals("") && !passwordField.getText().equals("")) {
-                m.writeToFile(loginTempFile, userNameField.getText() + "specialspliter" + passwordField.getText());
+                Utils.writeToFile(loginTempFile, userNameField.getText() + "specialspliter" + passwordField.getText());
             }
             m.log("запуск...");
             try {
@@ -139,7 +142,7 @@ public class Main {
                 m.log(ex.getMessage());
                 ex.printStackTrace();
             }
-            if (subject.equals(Subject.ENGLISH)){
+            if (subject.equals(Subject.ENGLISH)) {
                 m.goEnglish(courseLinkField.getText());
             } else {
                 m.go(100, courseLinkField.getText(), userNameField.getText(), passwordField.getText());
@@ -169,7 +172,7 @@ public class Main {
         }
         driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
         driver.manage().window().maximize();
-        if (subject.equals(Subject.ENGLISH)){
+        if (subject.equals(Subject.ENGLISH)) {
             englishSteps = new EnglishSteps(driver);
         } else {
             webDriverSteps = new WebDriverSteps(driver, subject);
@@ -177,16 +180,16 @@ public class Main {
         }
     }
 
-    private void returnToModule(){
+    private void returnToModule() {
         driver.get(moduleUrl);
     }
 
-    public void goEnglish(String moduleUrl){
+    public void goEnglish(String moduleUrl) {
         englishSteps.getMainPage(moduleUrl, userNameField.getText(), passwordField.getText());
         this.moduleUrl = moduleUrl;
         returnToModule();
         List<WebElement> module = englishSteps.getTasks();
-        for (WebElement taskSrc : module){
+        for (WebElement taskSrc : module) {
             returnToModule();
             englishSteps.goToTask(taskSrc);
             //*get task name from page*
@@ -197,13 +200,13 @@ public class Main {
         }
     }
 
-    private String getAnswersForEnglish(String taskName){
+    private String getAnswersForEnglish(String taskName) {
         StringBuilder answers = new StringBuilder();
         TextRecognizer tr = new TextRecognizer();
         tr.begin();
         File answerDir = new File(taskName);
         if (answerDir.isDirectory()) {
-            for (File img : answerDir.listFiles()){
+            for (File img : answerDir.listFiles()) {
                 answers.append(tr.recognize(img.getPath())).append("\n");
             }
         }
@@ -244,18 +247,20 @@ public class Main {
                 if (webDriverSteps.getAnswers(i).length < 5) {
                     question = block[0];
                 } else {
-                    question = driver.findElement(By.className("problem")).findElements(By.tagName("p")).get(i).getText();
+                    WebElement problem = driver.findElement(By.className("problem"));
+                    question = problem.findElements(By.tagName("p")).get(i).getText();
                 }
-            } catch (NoSuchElementException nsee0){  try {
-                question = webDriverSteps.getQuestionBlocks().get(i).findElement(By.tagName("legend")).getText();
-            } catch (NoSuchElementException nsee){
-                question = driver.findElements(By.tagName("fieldset")).get(i).findElement(By.tagName("legend")).getText();
-            }
+            } catch (NoSuchElementException | IndexOutOfBoundsException nsee_ioobe) {
+                try {
+                    question = webDriverSteps.getQuestionBlocks().get(i).findElement(By.tagName("legend")).getText();
+                } catch (NoSuchElementException nsee2) {
+                    question = driver.findElements(By.tagName("fieldset")).get(i).findElement(By.tagName("legend")).getText();
+                }
             }
 
             if (!question.equals("")) {
-                    String answer = null;
-                    try{
+                String answer = null;
+                try {
                     Damerau d = new Damerau();
                     double dist = 100;
                     for (String key : answersMap.keySet()) {
@@ -268,7 +273,7 @@ public class Main {
                             }
                         }
                     }
-                } catch (Exception e){
+                } catch (Exception e) {
                     log(e.getMessage());
                 }
                 System.out.println(question + " {");
@@ -303,7 +308,6 @@ public class Main {
                     System.out.println("Вопрос №" + i + 1 + " не найден, нужно ввести вручную!");
                     log("Вопрос №" + i + 1 + " не найден, нужно ввести вручную! {\n" + question + "\n" + answersMap.values().toString());
                 }
-
             } else {
                 System.out.println("Проблема с вопросом №" + i);
                 log("Проблема с вопросом №" + i);
@@ -338,7 +342,7 @@ public class Main {
         if (subject.equals(Subject.PHISRA)) {
             fileName = assetsPath + "answers\\phisraVSP2.txt";
         } else if (subject.equals(Subject.FILOSOFY)) {
-            fileName = assetsPath + "answers\\filosofiaVSP2.txt";
+            fileName = assetsPath + "answers\\filosofia2VSP2.txt";
         }
         File file = null;
         try {
@@ -346,7 +350,7 @@ public class Main {
         } catch (IOException e) {
             log(e.getMessage());
         }
-        String[] sourse = read(file).
+        String[] sourse = Utils.read(file).
                 split("\n");
         for (int i = 0; i < 1000000; i++) {
             try {
@@ -383,49 +387,49 @@ public class Main {
         return res.toString();
     }
 
-    public String read(File file) {
-        BufferedReader bReader = null;
-        InputStreamReader iReader = null;
-        FileInputStream fStream = null;
-        StringBuilder sb = new StringBuilder();
-        try {
-            fStream = new FileInputStream(file);
-            iReader = new InputStreamReader(fStream, "UTF-8");
-            bReader = new BufferedReader(iReader);
-
-//            String fileLine = bReader.readLine().replaceAll("[\\w]", "");
-//            sb.append(fileLine).append("\n");
-            String fileLine = null;
-            do {
-                fileLine = bReader.readLine();
-                if (fileLine != null) {
-                    //НЕ УБИРАТЬ ЭТИ КОММЕНТАРИИ НИЖЕ!!!!!!!!!!
-//                    fileLine = fileLine.replaceAll("</td><td class=\"column-2\">", "ОТВЕТ");
-//                    fileLine = fileLine.replaceAll("[\\w$&+:;=?@#|'<>.,^*()%!-\\\\/]", "");
-                    if (!fileLine.equals("  ") && !fileLine.equals("")) {
-                        sb.append(fileLine).append("\n");
-                    }
-                }
-            } while (fileLine != null);
-
-        } catch (IOException ioe) {
-            log(ioe.getMessage());
-        }
-        return sb.toString();
-    }
-
-
-    public void writeToFile(File file, String string) {
-        try {
-            FileWriter fileWriter = new FileWriter(file);
-            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-            StringBuilder sb = new StringBuilder();
-            sb.append(string).append("\n");
-            bufferedWriter.write(sb.toString());
-            bufferedWriter.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+//    public String read(File file) {
+//        BufferedReader bReader = null;
+//        InputStreamReader iReader = null;
+//        FileInputStream fStream = null;
+//        StringBuilder sb = new StringBuilder();
+//        try {
+//            fStream = new FileInputStream(file);
+//            iReader = new InputStreamReader(fStream, "UTF-8");
+//            bReader = new BufferedReader(iReader);
+//
+////            String fileLine = bReader.readLine().replaceAll("[\\w]", "");
+////            sb.append(fileLine).append("\n");
+//            String fileLine = null;
+//            do {
+//                fileLine = bReader.readLine();
+//                if (fileLine != null) {
+//                    //НЕ УБИРАТЬ ЭТИ КОММЕНТАРИИ НИЖЕ!!!!!!!!!!
+////                    fileLine = fileLine.replaceAll("</td><td class=\"column-2\">", "ОТВЕТ");
+////                    fileLine = fileLine.replaceAll("[\\w$&+:;=?@#|'<>.,^*()%!-\\\\/]", "");
+//                    if (!fileLine.equals("  ") && !fileLine.equals("")) {
+//                        sb.append(fileLine).append("\n");
+//                    }
+//                }
+//            } while (fileLine != null);
+//
+//        } catch (IOException ioe) {
+//            log(ioe.getMessage());
+//        }
+//        return sb.toString();
+//    }
+//
+//
+//    public void writeToFile(File file, String string) {
+//        try {
+//            FileWriter fileWriter = new FileWriter(file);
+//            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+//            StringBuilder sb = new StringBuilder();
+//            sb.append(string).append("\n");
+//            bufferedWriter.write(sb.toString());
+//            bufferedWriter.close();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
 }
