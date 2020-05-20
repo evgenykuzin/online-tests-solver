@@ -6,20 +6,24 @@ import org.openqa.selenium.ElementNotInteractableException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+import steps.EnglishSteps;
+import steps.WebDriverSteps;
+import utils.TextRecognizer;
+import utils.Utils;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
-
-import steps.EnglishSteps;
-import steps.WebDriverSteps;
-import utils.TextRecognizer;
-import utils.Utils;
 
 public class Main {
     private static WebDriver driver;
@@ -38,6 +42,7 @@ public class Main {
     private static final String english = "английский";
     private static final String filosofy = "философия";
     private static final String phisra = "физкультура";
+    private static final String economica = "экономика";
     private String moduleUrl = "";
     private static String assetsPath = "\\src\\main\\assets\\";
     private static Main m = new Main();
@@ -54,7 +59,8 @@ public class Main {
     public enum Subject {
         PHISRA,
         FILOSOFY,
-        ENGLISH
+        ENGLISH,
+        ECONOMICA
     }
 
     public static void main(String[] args) {
@@ -73,6 +79,7 @@ public class Main {
             comboBox.addItem(phisra);
             comboBox.addItem(filosofy);
             comboBox.addItem(english);
+            comboBox.addItem(economica);
             comboBox.setSelectedItem(filosofy);
             String[] loginTemp = m.readFile(loginTempFile).split("specialspliter");
             System.out.println(loginTemp[0]);
@@ -100,8 +107,12 @@ public class Main {
             JButton start = new JButton("запуск");
             start.setPreferredSize(new Dimension(300, 50));
             start.addActionListener(new MainButtonActionListener());
+            JButton clear = new JButton("очистить");
+            clear.setPreferredSize(new Dimension(110, 20));
+            clear.addActionListener(new ClearButtonActionListener());
             panel.add(courseLabel);
             panel.add(courseLinkField, BorderLayout.CENTER);
+            panel.add(clear);
             panel.add(userLabel);
             panel.add(userNameField, BorderLayout.CENTER);
             panel.add(passLabel);
@@ -110,6 +121,7 @@ public class Main {
             panel.add(authoSubmit);
             panel.add(comboBox);
             panel.add(start, BorderLayout.CENTER);
+
             textArea.setPreferredSize(new Dimension(300, 250));
             panel.add(textArea);
             panel.setVisible(true);
@@ -131,6 +143,8 @@ public class Main {
             } else if (comboBox.getSelectedItem().toString().equals(english)) {
                 subject = Subject.ENGLISH;
                 //answersMap = getEnglishAnswers();
+            } else if (comboBox.getSelectedItem().toString().equals(economica)) {
+                subject = Subject.ECONOMICA;
             }
             if (!userNameField.getText().equals("") && !passwordField.getText().equals("")) {
                 Utils.writeToFile(loginTempFile, userNameField.getText() + "specialspliter" + passwordField.getText());
@@ -148,6 +162,14 @@ public class Main {
                 m.go(100, courseLinkField.getText(), userNameField.getText(), passwordField.getText());
             }
             m.log("миссия окончена.");
+        }
+    }
+
+    static class ClearButtonActionListener implements ActionListener {
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            courseLinkField.setText("");
         }
     }
 
@@ -215,7 +237,7 @@ public class Main {
 
     public void go(int size, String url, String userName, String password) {
         webDriverSteps.getMainPage(url, userName, password);
-        if (subject.equals(Subject.FILOSOFY)) {
+        if (subject.equals(Subject.FILOSOFY) || subject.equals(Subject.ECONOMICA)) {
             List<WebElement> buttons = driver.findElements(By.tagName("button"));
             boolean onRightPage = false;
             while (!onRightPage) {
@@ -240,9 +262,10 @@ public class Main {
                 }
             }
         }
-        for (int i = 0; i < size; i++) {
+        List<WebElement> questionBlocksList = webDriverSteps.getQuestionBlocks();
+        for (int i = 0; i < questionBlocksList.size(); i++) {
             String question = null;
-            String[] block = webDriverSteps.getQuestionBlocks().get(i).getText().split("\n");
+            String[] block = questionBlocksList.get(i).getText().split("\n");
             try {
                 if (webDriverSteps.getAnswers(i).length < 5) {
                     question = block[0];
@@ -285,23 +308,26 @@ public class Main {
                     int radioJ = findRadioAnswerID(answer, i);
                     radioAnswer = webDriverSteps.getRadioButton(i, radioJ);
                     if (radioAnswer != null) {
+                        boolean hasAnswer = false;
                         try {
                             radioAnswer.click();
+                            hasAnswer = true;
                         } catch (ElementNotInteractableException enie) {
-                            radioAnswer = webDriverSteps.getQuestionBlocks().get(i).findElements(By.className("field")).get(radioJ);
-                            radioAnswer.click();
+                            try {
+                                radioAnswer = webDriverSteps.getQuestionBlocks().get(i).findElements(By.className("field")).get(radioJ);
+                                radioAnswer.click();
+                                hasAnswer = true;
+                            } catch (IndexOutOfBoundsException ignored) {
+                            }
                         }
-                        if (authoSubmit.isSelected()) {
+                        if (authoSubmit.isSelected() && hasAnswer) {
                             try {
                                 webDriverSteps.getQuestionBlocks().get(i).findElement(By.className("submit")).click();
                             } catch (ElementNotInteractableException enie) {
                                 enie.printStackTrace();
                                 log(enie.getMessage());
                             }
-                            try {
-                            } catch (Exception e) {
 
-                            }
                         }
                     }
                 } else {
@@ -343,6 +369,8 @@ public class Main {
             fileName = assetsPath + "answers\\phisraVSP2.txt";
         } else if (subject.equals(Subject.FILOSOFY)) {
             fileName = assetsPath + "answers\\filosofia2VSP2.txt";
+        } else if (subject.equals(Subject.ECONOMICA)) {
+            fileName = assetsPath + "answers\\economicaVSP_f.txt";
         }
         File file = null;
         try {

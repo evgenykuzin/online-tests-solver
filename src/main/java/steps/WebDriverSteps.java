@@ -26,6 +26,7 @@ public class WebDriverSteps {
             elements = driver.findElements(By.className("wrapper-problem-response"));
             if (elements.size() <= 2) {
                 elements = driver.findElements(By.tagName("fieldset"));
+
             }
         }
         return elements;

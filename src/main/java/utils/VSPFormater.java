@@ -4,13 +4,16 @@ import java.io.*;
 
 public class VSPFormater {
     public static void main(String[] args) {
-        String path = "src/main/assets/answers/filosofia2VSP.txt";
-        format(path, "filosofia2VSP.txt", "filosofia2VSP2.txt");
+        String oldFileName = "economicaVSP";
+        String path = "src/main/assets/answers/"+oldFileName+".txt";
+        format(path, oldFileName, oldFileName+"_f");
     }
 
     private static void format(String path, String oldFileName, String newFileName){
         File file = new File(path);
-        Utils.writeToFile(new File(path.replace(oldFileName, newFileName)), read(file));
+        Utils.writeToFile(new File(
+                path.replace(
+                        oldFileName+".txt", newFileName+".txt")), read(file));
     }
 
     public static String read(File file) {
